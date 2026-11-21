@@ -392,7 +392,7 @@ function bulkCandidatesForSeat(key){
  const m=/^([A-N])-([1-9])$/.exec(key);
  if(!m)return [];
  const [_,t,n]=m,sn=Number(n);
- if(!bustVacancies().includes(key)||isClosed(t)||isBlockedSeat(sn)||state.seats[t][sn]!==null)return [];
+ if(!bustVacancies().includes(key)||isClosed(t)||isBreaking(t)||isBlockedSeat(sn)||state.seats[t][sn]!==null)return [];
  return state.out.filter(p=>{const v=lastBustSeat(p);return v&&v.table===t&&v.seat===sn;});
 }
 function openBustEmpty(){
