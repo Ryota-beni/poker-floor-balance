@@ -24,17 +24,59 @@
 /* v5: seat controls and player-readable table break review */
 .seat.blocked{border-color:#86645a;background:#302729}.seat.blocked .n{background:#684646;color:#ffe0dc}.seat.blocked.empty .name{color:#ffb9ae}.seat-policies{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:4px;margin:9px 0 15px}.policy-pick{padding:11px 0;border:1px solid #496074;background:#1b2b39;border-radius:8px;color:#e1edf6;font-size:14px;font-weight:750;min-width:0}.policy-pick.active{background:#6d4245;border-color:#d78780;color:#fff}.policy-pick.avoid.active{background:#6d583b;border-color:#d8af67}.seat-legend{font-size:12px;color:var(--muted);line-height:1.6}.seat-capacity-note{font-size:12px;line-height:1.6;margin:10px 0;color:#bfe6d6}.break-review{max-width:680px;max-height:92dvh;overflow-y:auto}.break-review h3{font-size:22px}.review-move{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding:12px 2px}.review-move strong{font-size:19px}.review-move .muted{font-size:12px}.review-group{margin:14px 0 5px;color:#b4e6d5;font-size:17px}.review-label{font-size:12px;color:var(--muted)}.break-review .actions{position:sticky;bottom:-20px;background:#172533;padding:12px 0 2px;z-index:2}
 @media(max-width:375px){.seat-policies{gap:3px}.policy-pick{font-size:12px}} 
+
+/* v6 - minimal copy + one-screen break controller and compact player handoff */
+body.compact-break .shell{padding-top:10px;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+body.compact-break .header h1{font-size:21px}
+body.compact-break .header .eyebrow{display:none}
+body.compact-break #seatNote{display:none!important}
+body.compact-break .stats{margin-top:10px;gap:5px}
+body.compact-break .stat{padding:7px 3px;border-radius:9px}
+body.compact-break .stat b{font-size:21px}
+body.compact-break .stat span{font-size:10px}
+body.compact-break .tabs{margin:10px 0 9px;padding:4px}
+body.compact-break .tab{padding:8px 1px}
+body.compact-break .section-head{margin:6px 0 8px}
+body.compact-break .section-head h2{font-size:18px}
+body.compact-break .footer{margin-top:10px}
+.break-dashboard{border:1px solid var(--line);background:var(--card);border-radius:13px;padding:13px;display:grid;gap:10px}
+.break-summary{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.break-summary strong{font-size:25px;font-variant-numeric:tabular-nums;line-height:1.1}
+.break-summary .pill{font-size:12px;white-space:nowrap}
+.break-row-compact{display:flex;justify-content:space-between;gap:6px;align-items:center;color:var(--muted);font-size:12px}
+.break-dashboard label{margin:0}
+.break-dashboard select{min-height:42px}
+.break-dashboard .button.primary{min-height:48px;font-size:15px}
+.break-dashboard .notice{margin:0;padding:7px 9px}
+.break-closed{border:1px solid var(--line);border-radius:11px;padding:11px 13px;margin-top:9px;font-size:13px}
+.break-closed summary{cursor:pointer;font-weight:700}
+.break-closed .row{margin-top:8px;justify-content:flex-start}
+.break-review{width:min(660px,calc(100vw - 20px));max-width:660px;max-height:95dvh;overflow:auto;padding:12px 14px 14px}
+.break-review .dialog-close{font-size:23px}
+.break-review h3{font-size:18px;margin:0 0 8px;padding-right:24px}
+.break-review .review-summary{font-size:12px;color:var(--muted);margin-bottom:8px}
+.break-review .review-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.break-review .review-move{display:block;min-width:0;border:1px solid var(--line);border-radius:9px;padding:8px 7px;background:#1c303e}
+.break-review .review-move .review-player{font-size:12px;color:#dce8f0;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.break-review .review-move .review-route{font-size:16px;white-space:nowrap;letter-spacing:-.2px;font-weight:900;margin-top:3px}
+.break-review .review-move .review-route span{color:var(--green)}
+.break-review .review-move.conflict{border-color:#926d44}
+.break-review .review-move.conflict .review-route span{color:var(--amber)}
+.break-review .actions{position:static;margin-top:9px;padding:0;background:transparent}
+.break-review .actions button{padding:12px 8px;font-size:13px}
+@media (max-width:370px){.break-review{padding:10px}.break-review .review-grid{gap:4px}.break-review .review-move .review-route{font-size:14px}.break-review .review-move{padding:7px 5px}}
+@media (max-height:700px){body.compact-break .shell{padding-top:7px}body.compact-break .stat b{font-size:18px}body.compact-break .stat{padding:5px 3px}.break-review .review-move{padding:5px}.break-review .review-move .review-route{margin-top:1px}}
 </style>
 </head>
 <body>
 <div class="shell">
  <div class="header"><div><div class="eyebrow">LIVE TOURNAMENT TOOL</div><h1>FLOOR BALANCE</h1></div><span class="tag">● ローカル管理</span></div>
  <div id="storageWarn" class="notice">この環境では自動保存できない可能性があります。ブラウザの通常のWebページとして公開して開くか、JSONバックアップを利用してください。</div>
- <div class="notice" id="seatNote">座席番号：画像上端は8人卓＝1番、7人卓＝2番（確認済み）。9番席も追加済み。現在の選手配置は変更していないよ。</div>
+ <div class="notice" id="seatNote" hidden></div>
  <div class="stats" id="stats"></div>
  <nav class="tabs" aria-label="アプリのメニュー"><button data-tab="tables" class="tab active">座席</button><button data-tab="balance" class="tab">候補</button><button data-tab="break" class="tab">ブレイク</button><button data-tab="history" class="tab">履歴</button><button data-tab="settings" class="tab">設定</button></nav>
  <main id="main"></main>
- <div class="footer">端末内でのみ保存・同期なし。イベント中はこまめに「JSON保存」でバックアップ。<br>候補は所属チームと人数による計算であり、TDA等の移動対象・移動席ルールを保証しない。</div>
+ <div class="footer">端末内保存｜本番前にJSONバックアップ</div>
 </div>
 <dialog id="seatDialog"><button class="dialog-close" data-close="seatDialog" aria-label="閉じる">×</button><div id="seatDialogContent"></div></dialog>
 <dialog id="moveDialog"><button class="dialog-close" data-close="moveDialog" aria-label="閉じる">×</button><div id="moveDialogContent"></div></dialog>
@@ -121,7 +163,7 @@ function statistics(){const cs=counts(),num=TABLES.reduce((n,t)=>n+count(t),0),b
  document.getElementById('stats').innerHTML=`<div class="stat"><b style="color:var(--green)">${free}</b><span>使用可能空席</span></div><div class="stat"><b>${num}</b><span>残り人数</span></div><div class="stat"><b>${cs.length}</b><span>稼働卓</span></div><div class="stat"><b>${max-min}</b><span>人数差</span></div><div class="stat"><b style="color:${dups?'var(--amber)':'var(--green)'}">${dups}</b><span>同チーム組</span></div>`;
  document.getElementById('seatNote').style.display=state.seatConfirmed?'none':'block';}
 function setTab(x){tab=x;render();window.scrollTo({top:0,behavior:'instant'});}
-function render(){statistics();for(const b of document.querySelectorAll('.tab'))b.classList.toggle('active',b.dataset.tab===tab);const main=document.getElementById('main');if(dataBlocked){main.innerHTML=`<div class="safe-banner"><b>保存データ保護モード</b><div>以前の座席データを読み込めなかったため、上書きを防止しています。初期座席を実際の現在状況と誤認しないでください。</div><button class="button secondary" data-action="exportRaw">元の保存データをダウンロード</button><button class="button secondary" data-action="import">正しいJSONバックアップを復元</button></div>`;return;}if(tab==='tables')main.innerHTML=renderTables();if(tab==='balance')main.innerHTML=renderBalance();if(tab==='break')main.innerHTML=renderBreak();if(tab==='history')main.innerHTML=renderHistory();if(tab==='settings')main.innerHTML=renderSettings();}
+function render(){document.body.classList.toggle('compact-break',tab==='break');statistics();for(const b of document.querySelectorAll('.tab'))b.classList.toggle('active',b.dataset.tab===tab);const main=document.getElementById('main');if(dataBlocked){main.innerHTML=`<div class="safe-banner"><b>保存データ保護モード</b><div>以前の座席データを読み込めなかったため、上書きを防止しています。初期座席を実際の現在状況と誤認しないでください。</div><button class="button secondary" data-action="exportRaw">元の保存データをダウンロード</button><button class="button secondary" data-action="import">正しいJSONバックアップを復元</button></div>`;return;}if(tab==='tables')main.innerHTML=renderTables();if(tab==='balance')main.innerHTML=renderBalance();if(tab==='break')main.innerHTML=renderBreak();if(tab==='history')main.innerHTML=renderHistory();if(tab==='settings')main.innerHTML=renderSettings();}
 function renderTables(){const cs=balanceTables().map(t=>({t,n:count(t)})),max=cs.length?Math.max(...cs.map(x=>x.n)):0,min=cs.length?Math.min(...cs.map(x=>x.n)):0;const filtered=TABLES.filter(t=>!seatFilter||t.toLowerCase().includes(seatFilter.toLowerCase())||state.seats[t].some(p=>p&&p.toLowerCase().includes(seatFilter.toLowerCase())));return `<div class="section-head"><h2>テーブル / 座席</h2><button data-action="undo" class="button secondary smallbtn" ${undoStack.length?'':'disabled'}>↶ 取り消し</button></div><div class="hint">選手をタップ → <b>飛び登録</b> または <b>移動・席の修正</b>。赤い文字＝指定選手。画像上端の座席番号を使用。使用禁止席は赤枠。</div>${max-min>=2?`<div class="callout row"><span>⚖ 人数差${max-min}人・バランシング要検討</span><button class="button primary smallbtn" data-tab="balance">候補を見る</button></div>`:""}<div class="table-jump">${TABLES.map(t=>`<button class="jump" data-jump="${t}">${t} ${isClosed(t)?'閉鎖':isBreaking(t)?'ブレイク中':count(t)+'人'}</button>`).join("")}</div><input aria-label="テーブルまたは選手を検索" class="search" id="seatSearch" placeholder="検索（例：G、CP-3、KKS1）" value="${esc(seatFilter)}"><div class="tables">${filtered.map(t=>{const n=count(t),dups=collisionCount(t);return `<section id="table-${t}" class="table-card ${isClosed(t)?'closed':isBreaking(t)?'breaking':n===min&&max-min>=2?'under':''}"><div class="table-title"><b>${t}卓</b><span>${isClosed(t)?'閉鎖中':isBreaking(t)?'ブレイク中 / '+n+'人':n+'人'} ${dups?`<span class="warn-line">/ 重複${dups}</span>`:''}</span></div><div class="seats">${Array.from({length:9},(_,i)=>{const p=state.seats[t][i+1]??null,sn=i+1,red=!!p&&state.reds.includes(p);return `<button class="seat ${p?'':'empty'} ${red?'red':''} ${isBlockedSeat(sn)?'blocked':''}" data-seat="${t}:${sn}"><span class="n">${sn}</span><span class="name">${p?esc(p):isBlockedSeat(sn)?'使用禁止':'空席'}</span></button>`;}).join('')}</div></section>`}).join('')}</div>${filtered.length?'':'<div class="empty-state">該当する席がないよ</div>'}`;}
 function candidateList(target){const targetN=count(target),tc=state.seats[target].filter(Boolean).map(team);const sources=balanceTables().filter(t=>t!==target&&freeSeatNumbers(target).length>0&&count(t)>=targetN+2).sort((a,b)=>count(b)-count(a));const candidates=[];for(const from of sources){for(let seat=1;seat<=9;seat++){const p=state.seats[from][seat];if(!p)continue;const isRed=state.reds.includes(p);const overlaps=tc.filter(x=>x===team(p)).length,srcSame=state.seats[from].filter(v=>v&&team(v)===team(p)).length-1;candidates.push({from,seat,p,overlaps,delta:overlaps-srcSame,isRed,sourceN:count(from)});}}
  candidates.sort((a,b)=>a.overlaps-b.overlaps||a.delta-b.delta||a.seat-b.seat);
@@ -147,13 +189,13 @@ function renderBalance(){
  }
  const opts=groups.map(g=>`<option value="${g.dest}" ${selectedTarget===g.dest?'selected':''}>${g.dest}卓へ移動（最大${g.maxGap} gapper）</option>`).join('');
  return `<div class="section-head"><h2>バランシング候補</h2><button data-action="undo" class="button secondary smallbtn" ${undoStack.length?'':'disabled'}>↶ 取り消し</button></div>
- <div class="callout">最大${max-min} gapper。<b>移動先卓ごとにまとめて表示</b>。3 gapper以上を優先し、同差なら移動元の指定優先順位を使用。</div>
+ <div class="callout">最大 <b>${max-min} gapper</b></div>
  <div class="panel"><label for="targetSelect">移動先テーブル</label><select id="targetSelect"><option value="all" ${selectedTarget==='all'?'selected':''}>自動（最優先の移動先を表示）</option>${opts}</select></div>
  ${body}<details class="minor"><summary>移動元の優先順位を変更</summary>${renderPriorityEditor()}</details>
  ${state.breakingTable?`<div class="break-note">${state.breakingTable}卓をブレイク中なので通常候補から除外しているよ。</div>`:''}
- <div class="help">移動候補は人数差とチーム重複から判定。移動対象選出・移動先シートの正式ルールはフロアで確認してね。赤指定選手も移動候補に含める。</div>`;
+ <div class="help">※ 移動席はフロアで最終確認</div>`;
 }
-function renderPriorityEditor(){const order=priorityOrder();return `<div class="priority-editor">${order.map((t,i)=>`<div class="priority-line"><b>${i+1}位：${t}卓（${count(t)}人）</b><button class="button secondary smallbtn" data-priority="${t}:-1" ${i===0?'disabled':''}>↑</button><button class="button secondary smallbtn" data-priority="${t}:1" ${i===order.length-1?'disabled':''}>↓</button></div>`).join('')}</div><div class="small muted">同じgapperなら上位の移動元を優先。選手の配置は変更されないよ。</div>`;}
+function renderPriorityEditor(){const order=priorityOrder();return `<div class="priority-editor">${order.map((t,i)=>`<div class="priority-line"><b>${i+1}位：${t}卓（${count(t)}人）</b><button class="button secondary smallbtn" data-priority="${t}:-1" ${i===0?'disabled':''}>↑</button><button class="button secondary smallbtn" data-priority="${t}:1" ${i===order.length-1?'disabled':''}>↓</button></div>`).join('')}</div><div class="small muted"></div>`;}
 function changePriority(t,step){const order=priorityOrder().slice(),i=order.indexOf(t),j=i+step;if(i<0||j<0||j>=order.length)return;[order[i],order[j]]=[order[j],order[i]];selectedRoute='auto';record(`${t}卓の移動元優先順位を${j+1}位に変更`,()=>{state.sourceOrder=order;});}
 function breakDestinations(from,p){return balanceTables().filter(t=>t!==from&&freeSeatNumbers(t).length>0).map(t=>({t,n:count(t),overlaps:state.seats[t].filter(x=>x&&team(x)===team(p)).length,free:freeSeatNumbers(t).length})).sort((a,b)=>a.overlaps-b.overlaps||a.n-b.n||a.t.localeCompare(b.t));}
 // Read-only plan. Hard blocked seats are never used; avoid seats are selected only as a last resort.
@@ -178,31 +220,34 @@ function planBreak(from){
  return {plan,capacity};
 }
 function renderBreak(){
- const possible=openTables();if(!possible.length)return '<div class="empty-state">稼働中の卓がないよ。</div>';
+ const possible=openTables();if(!possible.length)return '<div class="empty-state">稼働中の卓なし</div>';
  if(!selectedBreakTable||!possible.includes(selectedBreakTable))selectedBreakTable=state.breakingTable||possible[0];
  if(state.breakingTable)selectedBreakTable=state.breakingTable;
  const t=selectedBreakTable,free=totalFreeSeats(),ready=free>=9,breaking=state.breakingTable===t;
- const players=Array.from({length:9},(_,i)=>({seat:i+1,p:state.seats[t][i+1]??null})).filter(x=>x.p);
- const plan=planBreak(t),slots=otherFreeSeats(t),canStart=ready&&(!state.breakingTable||breaking)&&slots>=players.length&&!plan.error&&players.length>0;
+ const playerCount=count(t),slots=otherFreeSeats(t),plan=planBreak(t);
+ const canStart=ready&&(!state.breakingTable||breaking)&&slots>=playerCount&&!plan.error&&playerCount>0;
+ const status=canStart?'ブレイク可能':!ready?'あと'+(9-free)+'席':plan.error?'移動先不足':'選択不可';
+ const closed=(state.closedTables||[]);
  return `<div class="section-head"><h2>テーブルブレイク</h2><button data-action="undo" class="button secondary smallbtn" ${undoStack.length?'':'disabled'}>↶ 取り消し</button></div>
- <div class="callout">現在の<b>使用可能空席 ${free}席</b> ／ 9席を目安に判断。${ready?'<b>空席数の条件を満たしているよ。</b>':'あと'+(9-free)+'席必要。'}<div class="small muted">使用禁止に設定した席は含めない。初期配置で空いていた席も含めた実際の空席合計だよ。</div></div>
- <section class="panel"><label for="breakSource">ブレイクするテーブル</label><select id="breakSource" ${state.breakingTable?'disabled':''}>${possible.map(x=>`<option value="${x}" ${x===t?'selected':''}>${x}卓（${count(x)}人）</option>`).join('')}</select>
- <div class="small muted" style="margin-top:9px">対象 ${players.length}人 ／ <b>ほかの卓の使用可能空席 ${slots}席</b></div>
- ${plan.error?`<div class="notice">${esc(plan.error)}</div>`:`<div class="hint">移動先を自動提案するよ。内容は次のポップアップで全員分を確認して、選手に見せてから確定できる。</div>`}
- <button class="button primary wide" data-action="openBreakReview" ${canStart?'':'disabled'} style="margin-top:12px">テーブルブレイクする（配置を確認）</button>
- <div class="small muted" style="margin-top:9px">ボタンを押してもまだ確定しない。ポップアップで移動表を確認後に「この配置で確定」を押すと一括変更する。取り消しもできるよ。</div></section>
- ${breaking?`<section class="panel"><h3>従来の1席ずつ移動</h3><div class="muted small">旧データでブレイク中の場合は手動修正も可能。</div><button class="button secondary" data-action="cancelBreak">中断</button><button class="button primary" data-action="finishBreak" ${count(t)>0?'disabled':''}>閉鎖する</button></section>`:''}
- <section class="panel"><h3>閉鎖した卓</h3>${(state.closedTables||[]).length?state.closedTables.map(x=>`<button class="button secondary smallbtn" data-reopen="${x}">${x}卓を再開</button>`).join(' '):'<div class="muted small">閉鎖卓はまだないよ。</div>'}</section>
- <div class="help">人数とチーム重複に基づく配置補助。TDA等に基づく移動先シート位置はフロアが確認してね。</div>`;
+ <section class="break-dashboard">
+ <div class="break-summary"><div><div class="muted small">使用可能空席</div><strong>${free}<span class="muted" style="font-size:14px"> / 9席</span></strong></div><span class="pill ${canStart?'':'warn'}">${status}</span></div>
+ <label for="breakSource">ブレイクする卓</label>
+ <select id="breakSource" ${state.breakingTable?'disabled':''}>${possible.map(x=>`<option value="${x}" ${x===t?'selected':''}>${x}卓　${count(x)}人</option>`).join('')}</select>
+ <div class="break-row-compact"><span>移動 ${playerCount}人</span><span>他卓の空席 ${slots}席</span></div>
+ ${plan.error?`<div class="notice">${esc(plan.error)}</div>`:''}
+ <button class="button primary wide" data-action="openBreakReview" ${canStart?'':'disabled'}>テーブルブレイクする</button>
+ </section>
+ ${breaking?`<div class="row" style="margin-top:8px"><button class="button secondary smallbtn" data-action="cancelBreak">中断</button><button class="button secondary smallbtn" data-action="finishBreak" ${playerCount?'disabled':''}>閉鎖</button></div>`:''}
+ ${closed.length?`<details class="break-closed"><summary>閉鎖した卓（${closed.length}）</summary><div class="row">${closed.map(x=>`<button class="button secondary smallbtn" data-reopen="${x}">${x}卓を再開</button>`).join('')}</div></details>`:''}`;
 }
 function openBreakReview(){
  const from=selectedBreakTable;if(!openTables().includes(from)||totalFreeSeats()<9)return alert('ブレイク条件を再確認してね');
  if(state.breakingTable&&state.breakingTable!==from)return alert('別の卓をブレイク中だよ');
  const r=planBreak(from);if(r.error)return alert(r.error);if(!r.plan?.length)return alert('移動する選手がいないよ');
  breakDraft={from,plan:r.plan,signature:JSON.stringify(state)};
- const sorted=r.plan.slice().sort((a,b)=>a.to.localeCompare(b.to)||a.targetSeat-b.targetSeat);
- const groups=[...new Set(sorted.map(x=>x.to))].map(t=>`<h4 class="review-group">${t}卓へ移動</h4>`+sorted.filter(x=>x.to===t).map(x=>`<div class="review-move"><div><div class="review-label">移動元</div><strong>${x.from}-${x.seat}</strong><div class="muted">${esc(x.p)}</div></div><span aria-hidden="true">→</span><div><div class="review-label">移動先</div><strong>${x.to}-${x.targetSeat}</strong><div class="${x.overlaps?'warn-line':'muted'}">${x.overlaps?'同チーム+'+x.overlaps:'重複なし'}</div></div></div>`).join('')).join('');
- document.getElementById('breakReviewContent').innerHTML=`<h3>${from}卓 テーブルブレイク</h3><div class="hint">以下の<b>${r.plan.length}人</b>の移動先を確認して選手に見せてね。<b>まだ座席データは変更していないよ。</b></div>${groups}<div class="actions"><button class="button secondary" data-close="breakReviewDialog">戻る・キャンセル</button><button class="button primary" data-action="finalizeBreak">この配置で確定</button></div>`;
+ const sorted=r.plan.slice().sort((a,b)=>a.seat-b.seat);
+ const cards=sorted.map(x=>`<div class="review-move ${x.overlaps?'conflict':''}"><div class="review-player">${esc(x.p)}</div><div class="review-route">${x.from}-${x.seat} → <span>${x.to}-${x.targetSeat}</span></div></div>`).join('');
+ document.getElementById('breakReviewContent').innerHTML=`<h3>${from}卓 → ブレイク <span class="pill">${r.plan.length}人</span></h3><div class="review-summary">移動先一覧｜確定前</div><div class="review-grid">${cards}</div><div class="actions"><button class="button secondary" data-close="breakReviewDialog">戻る</button><button class="button primary" data-action="finalizeBreak">一括確定</button></div>`;
  document.getElementById('breakReviewDialog').showModal();
 }
 function finalizeBreak(){
@@ -220,13 +265,13 @@ function cancelBreak(){const t=state.breakingTable;if(!t)return;if(!confirm(`${t
 function finishBreak(){const t=state.breakingTable;if(!t||count(t)!==0)return alert('まだ残っている選手がいるよ');if(!confirm(`${t}卓を閉鎖する？`))return;record(`${t}卓 ブレイク完了・閉鎖`,()=>{if(!Array.isArray(state.closedTables))state.closedTables=[];state.closedTables.push(t);state.breakingTable=null;state.lastBreakOutCount=state.out.length;});}
 function reopenBreak(t){if(!isClosed(t))return;if(!confirm(`${t}卓を再開する？`))return;record(`${t}卓 再開`,()=>{state.closedTables=state.closedTables.filter(x=>x!==t);});}
 function renderHistory(){return `<div class="section-head"><h2>操作履歴・誤操作の修正</h2><button data-action="undo" class="button secondary smallbtn" ${undoStack.length?'':'disabled'}>↶ 直前を取り消し</button></div><div class="hint">直前の誤操作は「取り消し」。以前の誤退場は下の選手から「復活」を選択。間違った移動・席番号は「座席」タブから手動で移動/入れ替えできるよ。</div><div class="panel"><div class="row"><span>退場者（誤登録を修正可能）</span><b>${state.out.length}人</b></div>${state.out.length?`<div class="restore-list">${state.out.map(p=>`<button class="button secondary smallbtn" data-restore="${esc(p)}">${esc(p)}　↶ 復活</button>`).join('')}</div>`:'<div class="small muted" style="margin-top:8px">まだ退場登録はないよ。</div>'}</div><div class="panel">${state.log.length?state.log.map(l=>`<div class="log"><time>${esc(l.time)}</time><div>${esc(l.label)}</div></div>`).join(''):'<div class="empty-state">まだ操作履歴はないよ。</div>'}</div>`;}
-function renderSettings(){return `<div class="section-head"><h2>設定・データ管理</h2></div><section class="panel"><h3>赤い指定選手</h3><div class="pill">移動可能（確認済み）</div><p class="muted small">赤指定の選手も通常バランシング・ブレイクの移動候補に含むよ。</p></section>
- <section class="panel"><h3>新規に入れる席のルール（全卓共通）</h3><p class="seat-legend"><b>使用禁止：</b>新しい移動先に選ばれない。空席数・ブレイク収容人数にも含めない（例：9番禁止で8max）。既に座っている選手は移動させない。</p>
+function renderSettings(){return `<div class="section-head"><h2>設定・データ管理</h2></div><section class="panel"><h3>赤い指定選手</h3><div class="pill">移動可能（確認済み）</div></section>
+ <section class="panel"><h3>新規に入れる席のルール（全卓共通）</h3><div class="seat-legend">禁止する席（新規配置なし）</div>
  <div class="seat-policies">${Array.from({length:9},(_,i)=>i+1).map(n=>`<button class="policy-pick ${isBlockedSeat(n)?'active':''}" data-seat-policy="blocked:${n}" aria-pressed="${isBlockedSeat(n)}">${n}</button>`).join('')}</div>
- <p class="seat-legend"><b>なるべく入れない：</b>ほかに使用可能な席がある限り避ける。空席数には含める。</p>
+ <div class="seat-legend">優先回避席（最後に使用）</div>
  <div class="seat-policies">${Array.from({length:9},(_,i)=>i+1).map(n=>`<button class="policy-pick avoid ${isAvoidSeat(n)?'active':''}" data-seat-policy="avoid:${n}" aria-pressed="${isAvoidSeat(n)}">${n}</button>`).join('')}</div>
- <div class="seat-capacity-note">使用可能空席：<b>${totalFreeSeats()}席</b>　／　禁止席 ${blockedNumbers().length?blockedNumbers().map(n=>n+'番').join('、'):'なし'}<div>設定を変更しても既存の選手配置は変更しないよ。</div></div></section>
- <section class="panel"><h3>座席番号の確認</h3><p class="muted small">画像の一番上が8人卓は1番、7人卓は2番と確認済み。現地で番号の位置が違うと分かった場合、座席画面から選手をタップして「座席の修正」で入れ替えてね。</p><label class="switch"><input id="seatConfirmed" type="checkbox" ${state.seatConfirmed?'checked':''}> 番号と初期配置を現地で確認済み</label></section><section class="panel"><h3>バックアップ</h3><p class="muted small">単一端末での管理。iPhoneとPCの自動同期はありません。JSONを保存しておけば別端末で復元可能。</p><div class="actions"><button data-action="export" class="button primary full">↓ JSON保存（バックアップ）</button><button data-action="import" class="button secondary full">↑ JSON読み込み（復元）</button><button data-action="undo" class="button secondary" ${undoStack.length?'':'disabled'}>↶ 取り消し</button><button data-action="reset" class="button danger">初期状態に戻す</button></div></section><div class="help">入力ミスは「直前を取り消し」、履歴タブからの「誤退場を復活」、座席タブからの「移動 / 座席修正」で修復可能。操作履歴も記録されます。ただしブラウザのキャッシュ削除やプライベートモード、端末変更によるデータ消失には注意。<br>「初期状態」は画像から書き起こした102名・14卓です。チーム名は各略称から識別します。</div>`;}
+ <div class="seat-capacity-note">使用可能空席：<b>${totalFreeSeats()}席</b>　／　禁止席 ${blockedNumbers().length?blockedNumbers().map(n=>n+'番').join('、'):'なし'}</div></section>
+ <section class="panel"><h3>座席番号の確認</h3><label class="switch"><input id="seatConfirmed" type="checkbox" ${state.seatConfirmed?'checked':''}> 番号と初期配置を現地で確認済み</label></section><section class="panel"><h3>バックアップ</h3><div class="actions"><button data-action="export" class="button primary full">↓ JSON保存（バックアップ）</button><button data-action="import" class="button secondary full">↑ JSON読み込み（復元）</button><button data-action="undo" class="button secondary" ${undoStack.length?'':'disabled'}>↶ 取り消し</button><button data-action="reset" class="button danger">初期状態に戻す</button></div></section>`;}
 function openSeat(t,seat){const p=state.seats[t][seat];const red=p&&state.reds.includes(p);document.getElementById('seatDialogContent').innerHTML=`<h3>${t}卓 / シート${seat}</h3>${p?`<div class="panel"><b style="font-size:23px">${esc(p)}</b> ${red?'<span class="pill danger">赤指定</span>':''}<div class="small muted">${esc(fmtTeam(p))}</div></div><div class="actions"><button class="button danger" data-bust="${t}:${seat}">飛んだ（退場）</button><button class="button secondary" data-manual-move="${t}:${seat}">移動 / 座席修正</button></div>`:'<div class="empty-state">現在は空席だよ。<br>別の席の選手をタップして「移動 / 座席修正」からこの席を選んでね。</div>'}`;document.getElementById('seatDialog').showModal();}
 function showMove(from,seat,target,manual,breakMove=false){const p=state.seats[from][seat];if(!p)return toast('選手がいない席だよ');document.getElementById('seatDialog').close();moveCtx={from,seat,manual,breakMove,p,target:target||from};renderMoveDialog();document.getElementById('moveDialog').showModal();}
 function renderMoveDialog(){if(!moveCtx)return;const {from,seat,manual,breakMove,p,target}=moveCtx;const options=openTables().filter(t=>!(breakMove&&t===from)).map(t=>`<option value="${t}" ${t===target?'selected':''}>${t}卓（${count(t)}人）</option>`).join('');let seatOpts='';for(const i of Array.from({length:9},(_,j)=>j+1).sort((a,b)=>Number(isAvoidSeat(a))-Number(isAvoidSeat(b))||a-b)){if(isBlockedSeat(i)||target===from&&i===seat)continue;const occupant=state.seats[target][i];if(occupant&&!manual)continue;seatOpts+=`<option value="${i}">${i}番 ${occupant?'（'+esc(occupant)+'と入れ替え）':isAvoidSeat(i)?'（優先回避）':'（空席）'}</option>`;}
