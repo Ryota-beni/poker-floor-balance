@@ -30,7 +30,8 @@ body.compact-break .shell{padding-top:10px;padding-bottom:max(12px,env(safe-area
 body.compact-break .header h1{font-size:21px}
 body.compact-break .header .eyebrow{display:none}
 body.compact-break #seatNote{display:none!important}
-body.compact-break .stats{margin-top:10px;gap:5px}
+body.compact-break .stats{margin-top:10px;gap:5px;grid-template-columns:repeat(3,minmax(0,1fr))}
+body.compact-break .stats .stat:nth-child(n+4){display:none}
 body.compact-break .stat{padding:7px 3px;border-radius:9px}
 body.compact-break .stat b{font-size:21px}
 body.compact-break .stat span{font-size:10px}
