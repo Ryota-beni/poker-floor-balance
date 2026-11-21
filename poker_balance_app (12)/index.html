@@ -97,6 +97,7 @@ body.compact-break .footer{margin-top:10px}
 .entry-form{display:grid;gap:9px;margin-top:10px}
 .seat .n{min-width:36px;padding:0 4px;white-space:nowrap}.seat .name{min-width:0}
 .entry-summary{background:#233b34;border:1px solid #40785f;border-radius:9px;padding:10px 12px;font-size:14px;font-weight:750}
+.entry-recommend{text-align:center;display:grid;gap:3px}.entry-recommend strong{font-size:36px;line-height:1.15;color:#b9f6d9}.entry-recommend small{font-size:12px}
 </style>
 </head>
 <body>
@@ -458,55 +459,73 @@ function openSeat(t,seat){const p=state.seats[t][seat];const red=p&&state.reds.i
 function showMove(from,seat,target,manual,breakMove=false){const p=state.seats[from][seat];if(!p)return toast('選手がいない席だよ');document.getElementById('seatDialog').close();moveCtx={from,seat,manual,breakMove,p,target:target||from};renderMoveDialog();document.getElementById('moveDialog').showModal();}
 function renderMoveDialog(){if(!moveCtx)return;const {from,seat,manual,breakMove,p,target}=moveCtx;const options=openTables().filter(t=>!(breakMove&&t===from)).map(t=>`<option value="${t}" ${t===target?'selected':''}>${t}卓（${count(t)}人）</option>`).join('');let seatOpts='';for(const i of Array.from({length:9},(_,j)=>j+1).sort((a,b)=>Number(isAvoidSeat(a))-Number(isAvoidSeat(b))||a-b)){if(isBlockedSeat(i)||target===from&&i===seat)continue;const occupant=state.seats[target][i];if(occupant&&!manual)continue;seatOpts+=`<option value="${i}">${seatLabel(target,i)} ${occupant?'（'+esc(playerLabel(occupant))+'と入れ替え）':isAvoidSeat(i)?'（優先回避）':'（空席）'}</option>`;}
 document.getElementById('moveDialogContent').innerHTML=`<h3>${manual?'選手を移動・座席訂正':breakMove?'ブレイク移動を確定':'移動を確定'}</h3><div class="panel"><b>${esc(playerLabel(p))}</b><div class="small muted">現在：${seatLabel(from,seat)}</div></div><div class="flexfields"><div><label for="destTable">移動先の卓</label><select id="destTable">${options}</select></div><div><label for="destSeat">移動先のシート</label><select id="destSeat">${seatOpts}</select></div></div><div class="hint">${manual?'座席修正のため、占有席との入れ替えも選べるよ。':'空席を指定して確定。正しい移動先シートはフロアルールで確認してね。'}</div><div class="actions"><button class="button secondary" data-close="moveDialog">やめる</button><button class="button primary" data-action="confirmMove" ${seatOpts?'':'disabled'}>移動確定</button></div>`;}
+function reentryPlayers(group){return state.out.filter(p=>team(p)===group);}
+function reentryTables(){return openTables().filter(t=>!isBreaking(t)&&freeSeatNumbers(t).length);}
+function reentrySeatChoices(p){
+ const moved=new Set(moveVacancies()),old=lastBustSeat(p),reserved=new Set(state.out.filter(x=>x!==p).map(x=>lastBustSeat(x)).filter(Boolean).map(x=>seatLabel(x.table,x.seat)));
+ const seats=[];
+ for(const t of reentryTables()){
+  const dukeRisk=state.reds.includes(p)?dukeCount(t):0,teamRisk=state.seats[t].filter(x=>x&&team(x)===team(p)).length;
+  for(const seat of freeSeatNumbers(t)){
+   const key=seatLabel(t,seat),origin=old&&old.table===t&&old.seat===seat;
+   seats.push({table:t,seat,key,dukeRisk,teamRisk,kind:moved.has(key)?0:origin?1:reserved.has(key)?3:2,avoid:Number(isAvoidSeat(seat)),n:count(t)});
+  }
+ }
+ return seats.sort((a,b)=>a.dukeRisk-b.dukeRisk||a.kind-b.kind||a.teamRisk-b.teamRisk||a.avoid-b.avoid||a.n-b.n||a.key.localeCompare(b.key));
+}
+function chooseReentryPlayer(group,lockedTable=null,lockedSeat=null){
+ const list=reentryPlayers(group);
+ if(lockedTable){const exact=list.filter(p=>{const old=lastBustSeat(p);return old&&old.table===lockedTable&&old.seat===lockedSeat;});if(exact.length===1)return exact[0];}
+ // 同じチームにDukeと一般選手が残っている場合は、勝手にどちらかを割り当てない。
+ if(new Set(list.map(p=>state.reds.includes(p))).size>1)return null;
+ return list[0]||null;
+}
 function openReentry(player=null,table=null,seat=null){
  if(!state.out.length)return toast('リエントリー可能な退場者はいないよ');
  const locked=!!table;
- if(locked&&(!openTables().includes(table)||!freeSeatNumbers(table).includes(seat)))return alert('このシートには戻せないよ');
- const matching=locked?state.out.filter(p=>{const old=lastBustSeat(p);return old&&old.table===table&&old.seat===seat;}):[];
- const p=player&&state.out.includes(player)?player:matching[0]||state.out[0];
- reentryCtx={player:p,locked,table:locked?table:null,seat:locked?seat:null,manualSeatChosen:locked};
+ if(locked&&(!reentryTables().includes(table)||!freeSeatNumbers(table).includes(seat)))return alert('このシートには戻せないよ');
+ const matches=locked?state.out.filter(p=>{const old=lastBustSeat(p);return old&&old.table===table&&old.seat===seat;}):[];
+ const p=player&&state.out.includes(player)?player:matches.length===1?matches[0]:null;
+ reentryCtx={player:p,group:p?team(p):'',locked,table:locked?table:null,seat:locked?seat:null,manual:false};
  document.getElementById('seatDialog').close();
  renderReentryDialog();
  document.getElementById('reentryDialog').showModal();
 }
 function renderReentryDialog(){
  if(!reentryCtx)return;
- const ctx=reentryCtx,old=lastBustSeat(ctx.player),manual=manualReentryNeeded(ctx.player),vacancies=moveVacancies();
- const preferred=vacancies.find(key=>{const [t,n]=key.split('-');return openTables().includes(t)&&freeSeatNumbers(t).includes(Number(n));});
- if(!ctx.locked){
-  if(!ctx.table||!openTables().includes(ctx.table)||!freeSeatNumbers(ctx.table).length){
-   ctx.table=preferred?.split('-')[0]||openTables().find(t=>freeSeatNumbers(t).length)||null;ctx.seat=null;
-  }
-  if(ctx.table){
-   const options=freeSeatNumbers(ctx.table);
-   if(!options.includes(ctx.seat)){
-    const suggestion=preferred?.split('-');
-    ctx.seat=ctx.manualSeatChosen?(options[0]||null):manual?null:suggestion?.[0]===ctx.table?Number(suggestion[1]):null;
-   }
-  }
- }
- const t=ctx.table,sn=ctx.seat;
- const players=state.out.slice().sort((a,b)=>{
-  if(!ctx.locked)return a.localeCompare(b);
-  const orig=p=>{const x=lastBustSeat(p);return x&&x.table===t&&x.seat===sn?0:1;};
-  return orig(a)-orig(b)||a.localeCompare(b);
- });
- const playerOpts=players.map(p=>{const x=lastBustSeat(p);const at=x?`${x.table}-${x.seat}`:'元席不明';return `<option value="${esc(p)}" ${p===ctx.player?'selected':''}>${esc(playerLabel(p))} / 元${at}${manualReentryNeeded(p)?'・個別':''}</option>`;}).join('');
- const tOpts=openTables().filter(x=>freeSeatNumbers(x).length).sort((a,b)=>Number(!moveVacancies().some(key=>key.startsWith(a+'-')))-Number(!moveVacancies().some(key=>key.startsWith(b+'-')))).map(x=>`<option value="${x}" ${x===t?'selected':''}>${x}卓</option>`).join('');
- const seatOpts=t?(sn?'':'<option value="" selected>席を選択</option>')+freeSeatNumbers(t).sort((a,b)=>Number(!moveVacancies().includes(seatLabel(t,a)))-Number(!moveVacancies().includes(seatLabel(t,b)))||Number(isAvoidSeat(a))-Number(isAvoidSeat(b))||a-b).map(n=>`<option value="${n}" ${n===sn?'selected':''}>${seatLabel(t,n)}${moveVacancies().includes(seatLabel(t,n))?'（移動で空いた席）':isAvoidSeat(n)?'（優先回避）':''}</option>`).join(''):'';
- const same=old&&old.table===t&&old.seat===sn;
+ const ctx=reentryCtx,groups=[...new Set(state.out.map(team))].sort((a,b)=>a.localeCompare(b));
+ if(!groups.includes(ctx.group)){ctx.group='';ctx.player=null;}
+ const players=reentryPlayers(ctx.group);
+ if(!players.includes(ctx.player))ctx.player=chooseReentryPlayer(ctx.group,ctx.locked?ctx.table:null,ctx.locked?ctx.seat:null);
+ const mixed=new Set(players.map(p=>state.reds.includes(p))).size>1;
+ const p=ctx.player,old=p?lastBustSeat(p):null,choices=p?reentrySeatChoices(p):[];
+ if(!ctx.locked&&!ctx.manual){ctx.table=choices[0]?.table||null;ctx.seat=choices[0]?.seat||null;}
+ if(ctx.manual&&!ctx.locked&&!reentryTables().includes(ctx.table)){ctx.table=choices[0]?.table||reentryTables()[0]||null;ctx.seat=choices.find(x=>x.table===ctx.table)?.seat||null;}
+ if(ctx.manual&&!ctx.locked&&!freeSeatNumbers(ctx.table||'A').includes(ctx.seat))ctx.seat=choices.find(x=>x.table===ctx.table)?.seat||null;
+ const t=ctx.table,sn=ctx.seat,recommended=choices.find(x=>x.table===t&&x.seat===sn);
+ const groupOpts='<option value="" '+(!ctx.group?'selected':'')+'>チームを選択</option>'+groups.map(g=>`<option value="${esc(g)}" ${g===ctx.group?'selected':''}>${esc(g)}</option>`).join('');
+ const playerOpts='<option value="" '+(!p?'selected':'')+'>選手を選択</option>'+players.map(x=>{const v=lastBustSeat(x);return `<option value="${esc(x)}" ${x===p?'selected':''}>${state.reds.includes(x)?'Duke':'一般'} / 元${v?seatLabel(v.table,v.seat):'席不明'}</option>`;}).join('');
+ const showPlayer=players.length>1&&mixed;
+ const tOpts=reentryTables().map(x=>`<option value="${x}" ${x===t?'selected':''}>${x}卓</option>`).join('');
+ const seatOpts=t?freeSeatNumbers(t).map(n=>`<option value="${n}" ${n===sn?'selected':''}>${seatLabel(t,n)}</option>`).join(''):'';
+ const fields=`<div class="flexfields"><div><label for="entryTable">卓</label><select id="entryTable">${tOpts}</select></div><div><label for="entrySeat">シート</label><select id="entrySeat">${seatOpts}</select></div></div>`;
+ const flags=recommended?[recommended.dukeRisk?'Duke重複':'',recommended.teamRisk?'同チーム重複':''].filter(Boolean):[];
+ const valid=!!(p&&t&&sn&&reentryTables().includes(t)&&freeSeatNumbers(t).includes(sn));
  document.getElementById('reentryDialogContent').innerHTML=`<h3>↩ リエントリー</h3>
- <div class="entry-form"><div><label for="entryPlayer">戻る選手</label><select id="entryPlayer">${playerOpts}</select></div>
- <div class="flexfields"><div><label for="entryTable">卓</label><select id="entryTable" ${ctx.locked?'disabled':''}>${tOpts}</select></div>
- <div><label for="entrySeat">シート</label><select id="entrySeat" ${ctx.locked?'disabled':''}>${seatOpts}</select></div></div>
- <div class="entry-meta">${manual?'<span class="warn-line">元の選手のリエントリー：個別に席を指定</span>':moveVacancies().length?'移動した選手の元席を優先':'移動元の空席なし：個別に席を指定'}${same?' / 元席':''}</div>
- <div class="entry-summary">${esc(playerLabel(ctx.player))} → ${t&&sn?seatLabel(t,sn):'—'}</div>
- <div class="actions"><button class="button secondary" data-close="reentryDialog">キャンセル</button><button class="button primary" data-action="confirmReentry" ${t&&sn?'':'disabled'}>リエントリー確定</button></div></div>`;
+ <div class="entry-form"><div><label for="entryTeam">戻るチーム</label><select id="entryTeam">${groupOpts}</select></div>
+ ${showPlayer?`<div><label for="entryPlayer">Duke / 一般を確認</label><select id="entryPlayer">${playerOpts}</select></div>`:''}
+ ${ctx.group&&!showPlayer&&!p?'<div class="small muted">対象選手を選択してね</div>':''}
+ <div class="entry-summary entry-recommend"><small>${ctx.locked?'指定シート':ctx.manual?'手動指定':'リエントリー先'}</small><strong>${valid?seatLabel(t,sn):'—'}</strong>${flags.length?`<small class="warn-line">${esc(flags.join(' / '))}</small>`:''}</div>
+ ${p&&!ctx.locked?`<button class="button secondary smallbtn" data-action="toggleEntryManual">${ctx.manual?'自動指定に戻す':'席を個別指定'}</button>`:''}
+ ${ctx.manual&&!ctx.locked?fields:''}
+ ${players.length>1&&!mixed?`<details class="minor"><summary>選手を個別指定</summary><select id="entryPlayer" aria-label="戻る選手を個別指定">${playerOpts}</select></details>`:''}
+ <div class="actions"><button class="button secondary" data-close="reentryDialog">キャンセル</button><button class="button primary" data-action="confirmReentry" ${valid?'':'disabled'}>リエントリー確定</button></div></div>`;
 }
 function doReentry(){
  if(!reentryCtx)return;
  const {player:p,table:t,seat:sn}=reentryCtx;
- if(!state.out.includes(p)||!openTables().includes(t)||!freeSeatNumbers(t).includes(sn)||state.seats[t][sn]!==null)return alert('退場者または空席が変わったよ。確認し直してね');
+ if(!state.out.includes(p)||!reentryTables().includes(t)||!freeSeatNumbers(t).includes(sn)||state.seats[t][sn]!==null)return alert('退場者または空席が変わったよ。確認し直してね');
+ if(!reentryCtx.locked&&!reentryCtx.manual){const recommended=reentrySeatChoices(p)[0];if(!recommended||recommended.table!==t||recommended.seat!==sn){renderReentryDialog();return alert('推奨席が変わったよ。もう一度確認してね');}}
  const old=lastBustSeat(p),different=old&&(old.table!==t||old.seat!==sn);
  if(state.reds.includes(p)&&dukeCount(t)>0&&!confirm('⚠ この卓には既にDukeがいるよ。重複するけど復帰させる？'))return;
  if(!confirm(`${playerLabel(p)} を ${seatLabel(t,sn)} にリエントリーさせる？${different?`\n元席は ${old.table}-${old.seat} だよ。`:''}`))return;
@@ -527,8 +546,8 @@ function exportRaw(){if(!rawSaved)return alert('元データが見つかりま�
 function exportJson(){const blob=new Blob([JSON.stringify({app:'floor-balance-v1',exportedAt:new Date().toISOString(),state,undoStack},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='poker-balance-'+new Date().toISOString().slice(0,10)+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),3000);toast('バックアップを保存した');}
 function importJson(file){if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const obj=JSON.parse(reader.result);if(obj.app!=='floor-balance-v1'||!validate(obj.state))throw new Error('データ形式や人数が不正');if(!confirm('いまの状態をバックアップの内容で置き換える？'))return;const prev=state,prevUndo=undoStack,prevBlocked=dataBlocked;state=migrate(obj.state);undoStack=Array.isArray(obj.undoStack)?obj.undoStack.filter(validate).slice(-70).map(migrate):[];dataBlocked=false;if(!save()){state=prev;undoStack=prevUndo;dataBlocked=prevBlocked;throw new Error('自動保存に失敗');}rawSaved=localStorage.getItem(STORAGE_KEY);if(prevBlocked){document.getElementById('storageWarn').style.display='none';}render();toast('バックアップを復元した');}catch(e){alert('読み込み失敗：'+e.message);}document.getElementById('importFile').value='';};reader.readAsText(file);}
 function reset(){if(dataBlocked)return alert('保護モード中は初期化できません');if(!confirm('102名・14卓の最初の座席配置に戻す？ 現在の飛び登録・移動履歴が消えます。'))return;if(!confirm('本当に全データを初期化する？ 必要なら先にJSON保存してね。'))return;state=blankState();undoStack=[];seatFilter='';save();render();toast('初期状態に戻した');}
-document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.tab){setTab(b.dataset.tab);return;}if(b.dataset.jump){document.getElementById('table-'+b.dataset.jump)?.scrollIntoView({behavior:'smooth',block:'start'});return;}if(b.dataset.close){document.getElementById(b.dataset.close).close();if(b.dataset.close==='breakReviewDialog')breakDraft=null;if(b.dataset.close==='bulkReentryDialog')bulkDraft=null;return;}if(b.dataset.openBustSeat){const [t,s]=b.dataset.openBustSeat.split('-');document.getElementById('bustEmptyDialog').close();seatFilter='';setTab('tables');openSeat(t,Number(s));return;}if(b.dataset.seat){const [t,s]=b.dataset.seat.split(':');openSeat(t,Number(s));return;}if(b.dataset.bust){const [t,s]=b.dataset.bust.split(':');bust(t,Number(s));return;}if(b.dataset.manualMove){const [t,s]=b.dataset.manualMove.split(':');showMove(t,Number(s),t,true);return;}if(b.dataset.breakMove){const [t,s,d]=b.dataset.breakMove.split(':');if(d)showMove(t,Number(s),d,false,true);return;}if(b.dataset.reopen){reopenBreak(b.dataset.reopen);return;}if(b.dataset.priority){const [t,step]=b.dataset.priority.split(':');changePriority(t,Number(step));return;}if(b.dataset.breakPriority){const [t,step]=b.dataset.breakPriority.split(':');changeBreakPriority(t,step);return;}if(b.dataset.seatPolicy){const [mode,n]=b.dataset.seatPolicy.split(':');toggleSeatPolicy(mode,Number(n));return;}if(b.dataset.propose){const [t,s,d]=b.dataset.propose.split(':');showMove(t,Number(s),d,false);return;}if(b.dataset.restore){openRestore(b.dataset.restore);return;}if(b.dataset.reentry){openReentry(b.dataset.reentry);return;}if(b.dataset.reentrySeat){const [t,s]=b.dataset.reentrySeat.split(':');openReentry(null,t,Number(s));return;}const act=b.dataset.action;if(act==='openBustEmpty')openBustEmpty();else if(act==='bulkSelectAll'){const eligible=bustVacancies().filter(key=>bulkCandidatesForSeat(key).length===1);bulkSelection=bulkSelection.size===eligible.length?new Set():new Set(eligible);renderBustEmpty();}else if(act==='openBulkReview')openBulkReview();else if(act==='confirmBulkReentry')confirmBulkReentry();else if(act==='openReentry')openReentry();else if(act==='confirmReentry')doReentry();else if(act==='openBreakReview')openBreakReview();else if(act==='finalizeBreak')finalizeBreak();else if(act==='startBreak')startBreak();else if(act==='cancelBreak')cancelBreak();else if(act==='finishBreak')finishBreak();else if(act==='confirmMove')doMove();else if(act==='confirmRestore')doRestore();else if(act==='exportRaw')exportRaw();else if(act==='undo')undo();else if(act==='export')exportJson();else if(act==='import')document.getElementById('importFile').click();else if(act==='reset')reset();});
-document.addEventListener('change',e=>{if(e.target.dataset.bulkSeat){toggleBulkSeat(e.target.dataset.bulkSeat,e.target.checked);return;}if(e.target.id==='targetSelect'){selectedTarget=e.target.value;selectedRoute='auto';render();}if(e.target.id==='routeChoice'||e.target.id==='sourceChoice'){selectedRoute=e.target.value;render();}if(e.target.id==='breakSource'){selectedBreakTable=e.target.value;render();}if(e.target.id==='redRule'){const value=e.target.value;record(`赤指定選手ルール：${value}`,()=>{state.redRule=value;});}if(e.target.id==='seatConfirmed'){const val=e.target.checked;record(val?'座席番号を確認済みに設定':'座席番号を未確認に戻した',()=>{state.seatConfirmed=val;});}if(e.target.id==='destTable'){moveCtx.target=e.target.value;renderMoveDialog();}if(e.target.id==='restoreTable')updateRestoreSeats();if(e.target.id==='entryPlayer'&&reentryCtx){reentryCtx.player=e.target.value;if(!reentryCtx.locked){reentryCtx.table=null;reentryCtx.seat=null;reentryCtx.manualSeatChosen=false;}renderReentryDialog();}if(e.target.id==='entryTable'&&reentryCtx){reentryCtx.table=e.target.value;reentryCtx.seat=null;reentryCtx.manualSeatChosen=false;renderReentryDialog();}if(e.target.id==='entrySeat'&&reentryCtx){reentryCtx.seat=Number(e.target.value);reentryCtx.manualSeatChosen=true;renderReentryDialog();}if(e.target.id==='importFile')importJson(e.target.files[0]);});
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.tab){setTab(b.dataset.tab);return;}if(b.dataset.jump){document.getElementById('table-'+b.dataset.jump)?.scrollIntoView({behavior:'smooth',block:'start'});return;}if(b.dataset.close){document.getElementById(b.dataset.close).close();if(b.dataset.close==='breakReviewDialog')breakDraft=null;if(b.dataset.close==='bulkReentryDialog')bulkDraft=null;return;}if(b.dataset.openBustSeat){const [t,s]=b.dataset.openBustSeat.split('-');document.getElementById('bustEmptyDialog').close();seatFilter='';setTab('tables');openSeat(t,Number(s));return;}if(b.dataset.seat){const [t,s]=b.dataset.seat.split(':');openSeat(t,Number(s));return;}if(b.dataset.bust){const [t,s]=b.dataset.bust.split(':');bust(t,Number(s));return;}if(b.dataset.manualMove){const [t,s]=b.dataset.manualMove.split(':');showMove(t,Number(s),t,true);return;}if(b.dataset.breakMove){const [t,s,d]=b.dataset.breakMove.split(':');if(d)showMove(t,Number(s),d,false,true);return;}if(b.dataset.reopen){reopenBreak(b.dataset.reopen);return;}if(b.dataset.priority){const [t,step]=b.dataset.priority.split(':');changePriority(t,Number(step));return;}if(b.dataset.breakPriority){const [t,step]=b.dataset.breakPriority.split(':');changeBreakPriority(t,step);return;}if(b.dataset.seatPolicy){const [mode,n]=b.dataset.seatPolicy.split(':');toggleSeatPolicy(mode,Number(n));return;}if(b.dataset.propose){const [t,s,d]=b.dataset.propose.split(':');showMove(t,Number(s),d,false);return;}if(b.dataset.restore){openRestore(b.dataset.restore);return;}if(b.dataset.reentry){openReentry(b.dataset.reentry);return;}if(b.dataset.reentrySeat){const [t,s]=b.dataset.reentrySeat.split(':');openReentry(null,t,Number(s));return;}const act=b.dataset.action;if(act==='openBustEmpty')openBustEmpty();else if(act==='bulkSelectAll'){const eligible=bustVacancies().filter(key=>bulkCandidatesForSeat(key).length===1);bulkSelection=bulkSelection.size===eligible.length?new Set():new Set(eligible);renderBustEmpty();}else if(act==='openBulkReview')openBulkReview();else if(act==='confirmBulkReentry')confirmBulkReentry();else if(act==='openReentry')openReentry();else if(act==='toggleEntryManual'&&reentryCtx&&!reentryCtx.locked){reentryCtx.manual=!reentryCtx.manual;renderReentryDialog();}else if(act==='confirmReentry')doReentry();else if(act==='openBreakReview')openBreakReview();else if(act==='finalizeBreak')finalizeBreak();else if(act==='startBreak')startBreak();else if(act==='cancelBreak')cancelBreak();else if(act==='finishBreak')finishBreak();else if(act==='confirmMove')doMove();else if(act==='confirmRestore')doRestore();else if(act==='exportRaw')exportRaw();else if(act==='undo')undo();else if(act==='export')exportJson();else if(act==='import')document.getElementById('importFile').click();else if(act==='reset')reset();});
+document.addEventListener('change',e=>{if(e.target.dataset.bulkSeat){toggleBulkSeat(e.target.dataset.bulkSeat,e.target.checked);return;}if(e.target.id==='targetSelect'){selectedTarget=e.target.value;selectedRoute='auto';render();}if(e.target.id==='routeChoice'||e.target.id==='sourceChoice'){selectedRoute=e.target.value;render();}if(e.target.id==='breakSource'){selectedBreakTable=e.target.value;render();}if(e.target.id==='redRule'){const value=e.target.value;record(`赤指定選手ルール：${value}`,()=>{state.redRule=value;});}if(e.target.id==='seatConfirmed'){const val=e.target.checked;record(val?'座席番号を確認済みに設定':'座席番号を未確認に戻した',()=>{state.seatConfirmed=val;});}if(e.target.id==='destTable'){moveCtx.target=e.target.value;renderMoveDialog();}if(e.target.id==='restoreTable')updateRestoreSeats();if(e.target.id==='entryTeam'&&reentryCtx){reentryCtx.group=e.target.value;reentryCtx.player=chooseReentryPlayer(reentryCtx.group,reentryCtx.locked?reentryCtx.table:null,reentryCtx.locked?reentryCtx.seat:null);reentryCtx.manual=false;renderReentryDialog();}if(e.target.id==='entryPlayer'&&reentryCtx){reentryCtx.player=e.target.value||null;reentryCtx.manual=false;renderReentryDialog();}if(e.target.id==='entryTable'&&reentryCtx&&reentryCtx.manual){reentryCtx.table=e.target.value;reentryCtx.seat=null;renderReentryDialog();}if(e.target.id==='entrySeat'&&reentryCtx&&reentryCtx.manual){reentryCtx.seat=Number(e.target.value);renderReentryDialog();}if(e.target.id==='importFile')importJson(e.target.files[0]);});
 document.addEventListener('input',e=>{if(e.target.id==='seatSearch'){const pos=e.target.selectionStart;seatFilter=e.target.value;const list=document.querySelector('.tables');if(list){const fresh=document.createElement('div');fresh.innerHTML=renderTables();const freshList=fresh.querySelector('.tables');list.replaceWith(freshList);}e.target.focus();try{e.target.setSelectionRange(pos,pos);}catch(_){}}});
 render();
 </script>
